@@ -276,6 +276,113 @@ $basePath = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/')
 
 </main>
 
+<!-- ═══════════════ FOOTER ════════════════════════════════ -->
+<footer class="app-footer">
+    <span>Organizador de Cédulas PDF</span>
+    <button class="manual-link" onclick="bootstrap.Modal.getOrCreateInstance($('#modal-manual')).show()">
+        <i class="bi bi-book-half"></i> Manual
+    </button>
+</footer>
+
+<!-- ═══════════════ MODAL MANUAL ═══════════════════════════ -->
+<div class="modal fade" id="modal-manual" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" style="background:var(--primary);color:#fff;border:none">
+                <h5 class="modal-title fw-bold mb-0" style="font-size:1rem">
+                    <i class="bi bi-book-half me-2"></i>Manual de uso
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+
+                <!-- Pasos -->
+                <div class="man-steps">
+
+                    <div class="man-step">
+                        <div class="man-num">1</div>
+                        <div class="man-content">
+                            <div class="man-title"><i class="bi bi-file-earmark-spreadsheet"></i> Cargar el Excel</div>
+                            <ul>
+                                <li>El archivo debe tener columnas llamadas <strong>Número documento</strong>, <strong>Nombres</strong> y <strong>Apellidos</strong> (los encabezados exactos pueden variar, la app los detecta automáticamente).</li>
+                                <li>La fila 1 contiene los encabezados; los datos comienzan en la fila 2.</li>
+                                <li>El <strong>orden de las filas</strong> define el orden del PDF consolidado final.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="man-step">
+                        <div class="man-num">2</div>
+                        <div class="man-content">
+                            <div class="man-title"><i class="bi bi-file-earmark-pdf"></i> Subir los PDFs</div>
+                            <ul>
+                                <li>Arrastre los archivos al área de PDFs o use el botón <em>Seleccionar PDFs</em>. Puede subir varios a la vez.</li>
+                                <li>Cada PDF puede tener varias páginas; todas quedan en el consolidado.</li>
+                                <li>Si una tarjeta aparece con <strong class="text-danger">borde rojo</strong>, el PDF no es compatible. Elimínelo, conviértalo gratis en <a href="https://www.ilovepdf.com/es/optimizar_pdf" target="_blank" rel="noopener"><strong>ilovepdf.com → Optimizar PDF</strong></a> y súbalo de nuevo.</li>
+                                <li>Archivos idénticos se detectan automáticamente y no se duplican.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="man-step">
+                        <div class="man-num">3</div>
+                        <div class="man-content">
+                            <div class="man-title"><i class="bi bi-link-45deg"></i> Asociar PDFs a personas</div>
+                            <ul>
+                                <li><strong>Arrastrando:</strong> tome una tarjeta PDF y suéltela sobre la fila de la persona en la tabla izquierda.</li>
+                                <li><strong>Con botón:</strong> use el ícono <i class="bi bi-link"></i> en la tarjeta PDF, o el ícono <i class="bi bi-paperclip"></i> en la fila de la persona.</li>
+                                <li>Las filas pendientes aparecen en azul; las completadas en verde.</li>
+                                <li>Si se equivocó, elimine el PDF con <i class="bi bi-trash3"></i>, súbalo de nuevo y reasígnelo.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="man-step">
+                        <div class="man-num">4</div>
+                        <div class="man-content">
+                            <div class="man-title"><i class="bi bi-file-earmark-check"></i> Generar y descargar</div>
+                            <ul>
+                                <li>Cuando todas las personas tengan PDF asignado, se habilita <strong>Generar PDF Consolidado</strong>.</li>
+                                <li>El archivo resultante es <strong>Cedulas_Ordenadas.pdf</strong> con las cédulas en el orden del Excel.</li>
+                                <li>También puede descargar el listado en Excel con <strong>Descargar Excel Ordenado</strong>.</li>
+                                <li>Para empezar un proceso nuevo use <strong>Reiniciar sesión</strong> — borra todo lo cargado.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Problemas frecuentes -->
+                <div class="man-faq">
+                    <div class="man-faq-title"><i class="bi bi-patch-question-fill me-2"></i>Problemas frecuentes</div>
+                    <div class="man-faq-grid">
+                        <div class="man-faq-item">
+                            <span class="man-fq">PDF con borde rojo</span>
+                            <span class="man-fa">Formato PDF moderno (1.5+) no compatible. Conviértalo en <a href="https://www.ilovepdf.com/es/optimizar_pdf" target="_blank" rel="noopener">ilovepdf.com → Optimizar PDF</a> y súbalo de nuevo.</span>
+                        </div>
+                        <div class="man-faq-item">
+                            <span class="man-fq">Dice que el archivo ya está cargado</span>
+                            <span class="man-fa">El sistema detectó que es idéntico a uno ya subido. No hace falta subirlo de nuevo.</span>
+                        </div>
+                        <div class="man-faq-item">
+                            <span class="man-fq">El consolidado no respeta el orden</span>
+                            <span class="man-fa">El orden viene del Excel. Revise el orden de las filas en su archivo antes de cargarlo.</span>
+                        </div>
+                        <div class="man-faq-item">
+                            <span class="man-fq">La columna de documentos no se detecta</span>
+                            <span class="man-fa">El encabezado debe contener las palabras <em>documento</em>, <em>cedula</em> o <em>identificacion</em> (sin tilde).</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer border-0 pt-0 pb-3 justify-content-center">
+                <small class="text-muted">Organizador de Cédulas PDF &nbsp;·&nbsp; v1.0</small>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- ═══════════════ PDF VIEWER MODAL ═══════════════════ -->
 <div class="modal fade modal-pdf-viewer" id="modal-pdf-viewer" tabindex="-1" aria-labelledby="modal-pdf-title" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
