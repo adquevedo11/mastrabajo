@@ -56,7 +56,10 @@ class PdfService
         }
     }
 
-    public function generate(array $persons, array $associations, array $pdfs): string
+    /**
+     * @return array{path: string, skipped: string[]}
+     */
+    public function generate(array $persons, array $associations, array $pdfs): array
     {
         $outputPath = STORAGE_GENERATED . '/Cedulas_Ordenadas.pdf';
 
@@ -67,8 +70,9 @@ class PdfService
         $fpdi->SetMargins(0, 0, 0);
         $fpdi->SetAutoPageBreak(false, 0);
 
-        $pagesAdded  = 0;
-        $usedPdfIds  = [];
+        $pagesAdded = 0;
+        $usedPdfIds = [];
+        $skipped    = [];
 
         foreach ($persons as $person) {
             $pdfId = $associations[(string) $person['documento']] ?? null;
@@ -76,19 +80,22 @@ class PdfService
                 continue;
             }
 
-            // Guard: skip if this exact PDF was already added (should not happen, but safety net)
             if (isset($usedPdfIds[$pdfId])) {
                 continue;
             }
 
-            $pdfInfo = $pdfs[$pdfId] ?? null;
+            $pdfInfo    = $pdfs[$pdfId] ?? null;
+            $personName = trim(($person['nombres'] ?? '') . ' ' . ($person['apellidos'] ?? ''));
+
             if ($pdfInfo === null || !file_exists($pdfInfo['path'])) {
+                $skipped[] = "$personName: archivo PDF no encontrado en el servidor.";
                 continue;
             }
 
             try {
                 $pageCount = $fpdi->setSourceFile($pdfInfo['path']);
-            } catch (\Exception) {
+            } catch (\Exception $e) {
+                $skipped[] = "$personName: no se pudo leer el PDF — " . $e->getMessage();
                 continue;
             }
 
@@ -96,7 +103,9 @@ class PdfService
 
             for ($i = 1; $i <= $pageCount; $i++) {
                 try {
-                    $templateId  = $fpdi->importPage($i);
+                    // Use MEDIA_BOX explicitly: every valid PDF must have one,
+                    // avoiding the CROP_BOX intermediate lookup that can fail on some scanned PDFs.
+                    $templateId  = $fpdi->importPage($i, \setasign\Fpdi\PdfReader\PageBoundaries::MEDIA_BOX);
                     $size        = $fpdi->getTemplateSize($templateId);
                     $w           = (float) $size['width'];
                     $h           = (float) $size['height'];
@@ -105,8 +114,8 @@ class PdfService
                     $fpdi->AddPage($orientation, [$w, $h]);
                     $fpdi->useTemplate($templateId, 0, 0, $w, $h, true);
                     $pagesAdded++;
-                } catch (\Exception) {
-                    // Skip unreadable page, continue with next
+                } catch (\Exception $e) {
+                    $skipped[] = "$personName (pág. $i): " . $e->getMessage();
                 }
             }
         }
@@ -117,7 +126,7 @@ class PdfService
 
         $fpdi->Output('F', $outputPath);
 
-        return $outputPath;
+        return ['path' => $outputPath, 'skipped' => $skipped];
     }
 
     private function uuid(): string

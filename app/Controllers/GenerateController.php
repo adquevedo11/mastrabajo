@@ -54,13 +54,14 @@ class GenerateController
         }
 
         try {
-            $outputPath = $this->pdfService->generate($persons, $associations, $pdfs);
-            $_SESSION['generated_pdf'] = $outputPath;
+            $result = $this->pdfService->generate($persons, $associations, $pdfs);
+            $_SESSION['generated_pdf'] = $result['path'];
 
             Response::success([
                 'message'     => 'PDF consolidado generado exitosamente.',
                 'ready'       => true,
                 'unused_pdfs' => $unusedPdfs,
+                'warnings'    => $result['skipped'],
             ]);
         } catch (\Exception $e) {
             Response::error('Error al generar el PDF: ' . $e->getMessage());

@@ -270,6 +270,11 @@ async function generatePdf() {
         } else {
             toast('PDF consolidado generado exitosamente.', 'success');
         }
+
+        if (Array.isArray(data.warnings) && data.warnings.length > 0) {
+            data.warnings.forEach(msg => toast(`⚠ Omitido: ${msg}`, 'warning', 9000));
+        }
+
         updateActionButtons();
     } catch (e) {
         toast('Error al generar: ' + e.message, 'error');
