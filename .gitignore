@@ -1,0 +1,18 @@
+# Dependencias de Composer
+vendor/
+
+# Archivos subidos por usuarios (PDFs, Excel, generados)
+storage/uploads/
+storage/generated/
+storage/temp/
+
+# Archivos de configuración del sistema
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Archivos de entorno locales
+.env
+.env.local

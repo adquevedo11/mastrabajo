@@ -1,0 +1,13 @@
+Options -Indexes
+RewriteEngine On
+
+# Block direct access to sensitive directories
+RewriteRule ^(app|vendor|storage)(/|$) - [F,L]
+
+# Route API calls to api.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^api/(.*)$ api.php?path=$1 [QSA,L]
+
+# Everything else to index
+RewriteRule ^$ index.php [L]
