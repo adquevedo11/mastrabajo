@@ -32,11 +32,8 @@ class PdfService
             throw new \Exception("No se pudo guardar el archivo '{$file['name']}'.");
         }
 
-        // Ensure the PDF can be read by FPDI; try Ghostscript conversion if needed.
-        // If incompatible and GS is unavailable, this deletes the stored file and throws.
-        $this->ensureFpdiCompatible($storedPath, basename($file['name']));
-
-        $pageCount = $this->countPages($storedPath);
+        $compatError = $this->detectCompatibilityError($storedPath);
+        $pageCount   = $compatError === null ? $this->countPages($storedPath) : 1;
 
         return [
             'id'            => $id,
@@ -47,6 +44,8 @@ class PdfService
             'status'        => 'pending',
             'person_doc'    => null,
             'hash'          => $hash,
+            'compatible'    => $compatError === null,
+            'compat_error'  => $compatError,
         ];
     }
 
@@ -91,6 +90,11 @@ class PdfService
             $pdfInfo    = $pdfs[$pdfId] ?? null;
             $personName = trim(($person['nombres'] ?? '') . ' ' . ($person['apellidos'] ?? ''));
 
+            if ($pdfInfo !== null && !($pdfInfo['compatible'] ?? true)) {
+                $skipped[] = "$personName: " . ($pdfInfo['compat_error'] ?? 'PDF incompatible.');
+                continue;
+            }
+
             if ($pdfInfo === null || !file_exists($pdfInfo['path'])) {
                 $skipped[] = "$personName: archivo PDF no encontrado en el servidor.";
                 continue;
@@ -133,66 +137,20 @@ class PdfService
         return ['path' => $outputPath, 'skipped' => $skipped];
     }
 
-    private function ensureFpdiCompatible(string $path, string $originalName): void
+    private function detectCompatibilityError(string $path): ?string
     {
         try {
             $fpdi = new Fpdi();
             $fpdi->setSourceFile($path);
-            return;
+            return null;
         } catch (\Exception $e) {
             $msg = $e->getMessage();
-            // Only handle FPDI's "compressed XRef / unsupported parser" error
-            if (stripos($msg, 'compression technique') === false &&
-                stripos($msg, 'free parser') === false) {
-                return; // Different error — generate() will surface it with context
+            if (stripos($msg, 'compression technique') !== false ||
+                stripos($msg, 'free parser') !== false) {
+                return "Formato PDF moderno (PDF 1.5+) no compatible. Elimínelo, conviértalo gratis en ilovepdf.com → 'Optimizar PDF' y vuelva a subirlo.";
             }
+            return null;
         }
-
-        // Try Ghostscript auto-conversion to PDF 1.4
-        $gs = $this->findGhostscript();
-        if ($gs !== null) {
-            $this->runGhostscript($gs, $path);
-            return;
-        }
-
-        // No GS: delete the stored file and reject with an actionable message
-        @unlink($path);
-        throw new \Exception(
-            "'{$originalName}' usa compresión PDF moderna (PDF 1.5+) no compatible con el procesador. " .
-            "Conviértalo a PDF 1.4 en ilovepdf.com → 'Optimizar PDF' (gratis) y vuelva a subirlo."
-        );
-    }
-
-    private function runGhostscript(string $gs, string $inputPath): void
-    {
-        $tmpPath = $inputPath . '.gs_tmp.pdf';
-        exec(sprintf(
-            '%s -q -dBATCH -dNOPAUSE -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -sOutputFile=%s %s 2>&1',
-            escapeshellarg($gs),
-            escapeshellarg($tmpPath),
-            escapeshellarg($inputPath)
-        ), $out, $code);
-
-        if ($code === 0 && file_exists($tmpPath) && filesize($tmpPath) > 0) {
-            @unlink($inputPath);
-            rename($tmpPath, $inputPath);
-        } else {
-            @unlink($tmpPath);
-        }
-    }
-
-    private function findGhostscript(): ?string
-    {
-        $candidates = ['gswin64c', 'gswin32c', 'gs', '/usr/bin/gs', '/usr/local/bin/gs'];
-        foreach ($candidates as $cmd) {
-            $out  = [];
-            $code = -1;
-            exec(escapeshellarg($cmd) . ' --version 2>&1', $out, $code);
-            if ($code === 0) {
-                return $cmd;
-            }
-        }
-        return null;
     }
 
     private function uuid(): string

@@ -418,6 +418,24 @@ body {
     cursor: default;
 }
 
+.pdf-card.incompatible {
+    border-color: #dc2626;
+    background: #fff5f5;
+    cursor: default;
+}
+
+.pdf-compat-error {
+    font-size: .75rem;
+    color: #dc2626;
+    line-height: 1.4;
+    margin-bottom: .5rem;
+}
+
+.pdf-compat-error a {
+    color: #dc2626;
+    font-weight: 600;
+}
+
 .pdf-thumbnail-wrap {
     width: 100%;
     height: 130px;

@@ -82,21 +82,6 @@ function toast(message, type = 'info', duration = 4500) {
     }, duration);
 }
 
-// ── Normalización PDF (pdf-lib) ───────────────────────────
-// Re-codifica el PDF usando pdf-lib para convertirlo a formato PDF 1.4
-// compatible con FPDI, sin que el usuario note nada.
-async function normalizePdf(file) {
-    if (typeof PDFLib === 'undefined') return file;
-    try {
-        const bytes  = await file.arrayBuffer();
-        const doc    = await PDFLib.PDFDocument.load(bytes);
-        const out    = await doc.save();
-        return new File([out], file.name, { type: 'application/pdf' });
-    } catch {
-        return file; // si pdf-lib tampoco puede, deja el original y el servidor dirá el error
-    }
-}
-
 // ── Custom confirm modal ──────────────────────────────────
 function showConfirm(title, message, confirmLabel = 'Confirmar', danger = true) {
     return new Promise(resolve => {
@@ -205,13 +190,10 @@ async function handlePdfUpload(files) {
         return;
     }
 
-    showSpinner(`Preparando ${files.length} PDF(s)…`);
-    const normalized = await Promise.all([...files].map(normalizePdf));
-
     showSpinner(`Cargando ${files.length} PDF(s)…`);
 
     const fd = new FormData();
-    normalized.forEach(f => fd.append('pdfs[]', f));
+    [...files].forEach(f => fd.append('pdfs[]', f));
 
     try {
         const data = await apiPost('pdf/upload', fd, true);
@@ -560,13 +542,37 @@ function renderPdfsPanel() {
 }
 
 function createPdfCard(pdf) {
+    const incompatible = pdf.compatible === false;
     const card = document.createElement('div');
-    card.className = `pdf-card ${pdf.status === 'associated' ? 'associated' : ''}`;
+    card.className = `pdf-card ${pdf.status === 'associated' ? 'associated' : ''} ${incompatible ? 'incompatible' : ''}`;
     card.dataset.pdfId = pdf.id;
 
     const shortName = pdf.original_name.length > 20
         ? pdf.original_name.substring(0, 17) + '…'
         : pdf.original_name;
+
+    if (incompatible) {
+        card.innerHTML = `
+            <div class="pdf-thumbnail-wrap">
+                <div class="pdf-thumb-placeholder" style="display:flex">
+                    <i class="bi bi-exclamation-triangle-fill" style="color:#dc2626;font-size:1.6rem"></i>
+                </div>
+            </div>
+            <div class="pdf-card-body">
+                <div class="pdf-name" title="${escAttr(pdf.original_name)}">${escHtml(shortName)}</div>
+                <div class="pdf-compat-error">
+                    <i class="bi bi-exclamation-circle-fill"></i>
+                    Formato incompatible — elimínelo y conviértalo en
+                    <a href="https://www.ilovepdf.com/es/optimizar_pdf" target="_blank" rel="noopener">ilovepdf.com</a>
+                </div>
+                <div class="pdf-card-actions">
+                    <button class="btn btn-outline-danger btn-sm ms-auto" onclick="removePdf('${escAttr(pdf.id)}')" title="Eliminar PDF">
+                        <i class="bi bi-trash3"></i> Eliminar
+                    </button>
+                </div>
+            </div>`;
+        return card;
+    }
 
     card.innerHTML = `
         <div class="pdf-thumbnail-wrap">
@@ -603,7 +609,6 @@ function createPdfCard(pdf) {
             card.classList.add('dragging');
             e.dataTransfer.effectAllowed = 'link';
             e.dataTransfer.setData('text/plain', pdf.id);
-            // Highlight pending person rows
             $$('.person-row.pending').forEach(r => r.classList.add('drop-active'));
         });
         card.addEventListener('dragend', () => {
